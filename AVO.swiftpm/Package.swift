@@ -18,8 +18,8 @@ let package = Package(
             targets: ["AppModule"],
             bundleIdentifier: "com.avoperformance.horse",
             teamIdentifier: "4J2D6P5BJX",
-            displayVersion: "1.0.5",
-            bundleVersion: "17",
+            displayVersion: "1.0.6",
+            bundleVersion: "18",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.brown),
             supportedDeviceFamilies: [
