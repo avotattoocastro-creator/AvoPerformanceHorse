@@ -1,0 +1,43 @@
+workflows:
+  avo-telemetria-ios:
+    name: Compilación AVO Performance Horse
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: Codemagic
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.avoperformance.horse
+      vars:
+        XCODE_PROJECT: "AVOPerformanceHorse.xcodeproj"
+        XCODE_SCHEME: "AVOPerformanceHorse"
+
+    scripts:
+      - name: Comprobar proyecto Xcode
+        script: |
+          echo "=== RAÍZ ==="
+          ls -la
+          echo "=== PROYECTOS ==="
+          find . -maxdepth 3 -name "*.xcodeproj" -print
+          echo "=== SCHEMES ==="
+          xcodebuild -list -project "$XCODE_PROJECT"
+
+      - name: Configurar firma App Store
+        script: |
+          xcode-project use-profiles
+
+      - name: Compilar IPA
+        script: |
+          xcode-project build-ipa             --project "$XCODE_PROJECT"             --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/Archives/**/*.xcarchive
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
