@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>AVO Performance Horse</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.5</string>
+    <key>CFBundleVersion</key>
+    <string>18</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+    </dict>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>NSCameraUsageDescription</key>
+    <string>La app utiliza la cámara para capturar vídeos y datos biomecánicos del caballo durante las sesiones de entrenamiento y análisis.</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>La app utiliza Bluetooth para conectarse con sensores externos y dispositivos de telemetría equina.</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>La app utiliza la red local para sincronizar datos con el servidor y dispositivos de análisis en tiempo real.</string>
+    <key>NSAppleMusicUsageDescription</key>
+    <string>La app necesita acceso a la biblioteca multimedia para importar, exportar y guardar vídeos e imágenes de análisis biomecánico equino.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>La app puede importar imágenes y vídeos para análisis biomecánico.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>La app puede guardar vídeos e informes exportados.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+        <string>bluetooth-central</string>
+        <string>fetch</string>
+    </array>
+</dict>
+</plist>
