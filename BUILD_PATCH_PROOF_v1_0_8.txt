@@ -1,0 +1,10 @@
+AVO Performance Horse v1.0.8 build 21
+
+Cambios reales aplicados:
+- AVOLiveTrainingDashboardPage.swift corregido sin .frame. typo.
+- Package.swift actualizado a displayVersion 1.0.8 y bundleVersion 21.
+- Botón GEOFENCE restaurado en header y barra inferior: abre AVOTrainingGeofenceEditorPage real.
+- Header LIVE usa datos reales: caballo, jinete, duración de sesión, cloud y batería.
+- Tarjetas LIVE conectadas a telemetría real: distancia por path GPS, duración, velocidad media/máxima, cadencia, altitud, batería, conexión, GPS y alertas de zona.
+- Gravity Field ligado a IMU real del chaleco: pitch, roll, impacto, sync, balance lateral, absorción e impacto.
+- Codemagic mantiene sanity fix para eliminar cualquier .frame. accidental antes de compilar.

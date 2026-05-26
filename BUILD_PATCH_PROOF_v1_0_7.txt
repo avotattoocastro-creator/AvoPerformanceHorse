@@ -1,0 +1,3 @@
+AVOLiveTrainingDashboardPage.swift checked: no .frame. typo
+Package.swift: displayVersion 1.0.7 bundleVersion 20
+Codemagic includes Sanity fix Swift syntax preflight

@@ -1,0 +1,103 @@
+workflows:
+  avo-telemetria-ios:
+    name: Compilación AVO Performance
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: Codemagic
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.avoperformance.horse
+
+    scripts:
+      - name: Configurar perfiles
+        script: |
+          xcode-project use-profiles
+
+      - name: Limpiar modelo CoreML roto
+        script: |
+          cd AVO.swiftpm
+
+          perl -0pi -e 's/\s*\.process\("AVOHorsePose\.mlpackage"\),//g' Package.swift
+
+          if [ -d "AVOHorsePose.mlpackage" ]; then
+            mkdir -p ../DisabledModels
+            mv AVOHorsePose.mlpackage ../DisabledModels/AVOHorsePose.mlpackage
+          fi
+
+      - name: Sanity fix Swift syntax
+        script: |
+          echo "Sanity check: removing accidental .frame. typo if present"
+          find AVO.swiftpm -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/\.frame\.\s*\(/.frame(/g'
+          grep -R "\.frame\." -n AVO.swiftpm && exit 1 || true
+
+      - name: Build Swift Playgrounds IPA
+        script: |
+          cd AVO.swiftpm
+
+          PROFILE_UUID=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" -print0 | while IFS= read -r -d '' file; do
+            security cms -D -i "$file" > /tmp/profile.plist 2>/dev/null || true
+            APP_ID=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" /tmp/profile.plist 2>/dev/null || true)
+            UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/profile.plist 2>/dev/null || true)
+            if echo "$APP_ID" | grep -q "com.avoperformance.horse"; then
+              echo "$UUID"
+              break
+            fi
+          done)
+
+          echo "PROFILE_UUID=$PROFILE_UUID"
+
+          mkdir -p ../build/ios/archive
+          mkdir -p ../build/ios/ipa
+
+          xcodebuild archive \
+            -scheme "AVO Performance Horse" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "../build/ios/archive/AVOPerformanceHorse.xcarchive" \
+            DEVELOPMENT_TEAM=4J2D6P5BJX \
+            PRODUCT_BUNDLE_IDENTIFIER=com.avoperformance.horse \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE="$PROFILE_UUID" \
+            COREML_CODEGEN_LANGUAGE=Swift \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>4J2D6P5BJX</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.avoperformance.horse</key>
+              <string>Codemagic</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath "../build/ios/archive/AVOPerformanceHorse.xcarchive" \
+            -exportPath "../build/ios/ipa" \
+            -exportOptionsPlist ExportOptions.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - DisabledModels/AVOHorsePose.mlpackage
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
