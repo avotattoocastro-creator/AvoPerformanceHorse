@@ -443,7 +443,9 @@ struct AVOLiveTrainingDashboardPage: View {
                     .foregroundStyle(.green)
             }
             .padding(.horizontal, 18)
-            .frame(width: 170, maxHeight: .infinity, alignment: .leading)
+            .frame(width: 170)
+.frame.           (maxHeight: .infinity, alignment: .leading)
+
             .background(Color.black.opacity(0.46))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.cyan.opacity(0.16), lineWidth: 1))
             .clipShape(RoundedRectangle(cornerRadius: 9))
@@ -637,7 +639,9 @@ struct AVOLiveTrainingDashboardPage: View {
                         path: hardware.externalPath,
                         zone: settings.trainingZone
                     )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+.frame(width: 215)
+.frame(maxHeight: .infinity, alignment: .leading)
+
 
                     HStack(spacing: 8) {
                         metricCard("LAT", String(format: "%.6f", hardware.externalCoordinate.latitude), .white)
