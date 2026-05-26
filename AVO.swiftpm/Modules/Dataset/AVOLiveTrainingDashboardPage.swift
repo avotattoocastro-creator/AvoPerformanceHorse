@@ -495,8 +495,13 @@ struct AVOLiveTrainingDashboardPage: View {
                 Text("NOVEDADES v1.0.8")
                     .font(.system(size: 12, weight: .black, design: .monospaced))
                     .foregroundStyle(.cyan)
-                Text("• Nuevo módulo Horse / Rider Gravity Field\n• Dashboard Live más limpio y enfocado\n• Preparado para IMU Cincha (Horse)\n• Menús inferiores funcionales
-• Geocercas guardadas por caballo/servidor")
+                Text("""
+                • Nuevo módulo Horse / Rider Gravity Field
+                • Dashboard Live más limpio y enfocado
+                • Preparado para IMU Cincha (Horse)
+                • Menús inferiores funcionales
+                • Geocercas guardadas por caballo/servidor
+                """)
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.68))
                     .lineLimit(4)
