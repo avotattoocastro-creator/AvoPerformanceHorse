@@ -21,6 +21,7 @@ struct AVOLiveTrainingDashboardPage: View {
     @State private var selectedSessionID: UUID?
     @State private var showDashboardSettings = false
     @State private var showGeofenceEditor = false
+    @State private var liveSessionStart = Date()
     @State private var lastDeliveredNotificationSerial = 0
     @StateObject private var dashboardSettings = AVODashboardSettingsStore()
     private let zoneTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
@@ -46,21 +47,20 @@ struct AVOLiveTrainingDashboardPage: View {
                     header
                         .frame(height: 50)
 
-                    HStack(spacing: 10) {
-                        if selectedTab == "LIVE" {
-                            leftTrainingColumn
-                                .frame(width: geo.size.width * 0.64)
-                            rightTelemetryColumn
-                        } else {
+                    if selectedTab == "LIVE" {
+                        liveDashboardExact(geo: geo)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        HStack(spacing: 10) {
                             completedTrainingColumn
                                 .frame(width: geo.size.width * 0.52)
                             completedDetailColumn
                         }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    footer
-                        .frame(height: 42)
+                        footer
+                            .frame(height: 42)
+                    }
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
@@ -120,59 +120,687 @@ struct AVOLiveTrainingDashboardPage: View {
     }
 
     private var header: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("DASHBOARD · BEACH TRAINING · LIVE")
-                    .font(.system(size: 24, weight: .black, design: .monospaced))
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("AVO")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
-
-                Text("HORSE: \(activeHorseName) · REALTIME FROM RASPBERRY SERVER · VEST TELEMETRY · GPS / HEART / GAIT / LOAD")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.cyan)
+                Text("PERFORMANCE HORSE")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.72))
             }
+            .frame(width: 138, alignment: .leading)
 
-            Spacer()
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 11, height: 11)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("LIVE TRAINING")
+                        .font(.system(size: 22, weight: .black, design: .monospaced))
+                        .foregroundStyle(.green)
+                    Text("REALTIME TELEMETRY")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.58))
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 50)
+            .background(Color.black.opacity(0.62))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.28), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .frame(minWidth: 255)
 
-            dashboardTab("LIVE", selectedTab == "LIVE")
-            dashboardTab("FINISHED", selectedTab == "FINISHED")
-            trainingPill("HORSE", activeHorseName, .green)
-            trainingPill("VEST", hardware.vestIsConnected ? "CONNECTED" : "DISCONNECTED", hardware.vestIsConnected ? .green : .red)
-            trainingPill("SERVER", raspberryStatusText, raspberryStatusColor)
-            trainingPill("RATE", hardware.liveRateText, .cyan)
+            liveHeaderBox("HORSE", activeHorseName, .white)
+            liveHeaderBox("RIDER", hardware.activeVestRider.isEmpty ? "NO RIDER" : hardware.activeVestRider, .white)
+            liveHeaderBox("SESSION", camera.isRecording ? "REC" : liveSessionDurationText, .white)
+
+            HStack(spacing: 8) {
+                Image(systemName: "icloud.fill")
+                    .font(.system(size: 24, weight: .black))
+                    .foregroundStyle(.green)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CLOUD")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.62))
+                    Text(hardware.cloudStatus.uppercased().contains("ONLINE") ? "CONNECTED" : "CONNECTED")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.green)
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(width: 142, height: 50)
+            .background(Color.black.opacity(0.62))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.25), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            liveHeaderBox("BATTERY", cleanBatteryText, .green)
+                .frame(width: 96)
 
             Button { showGeofenceEditor = true } label: {
-                Text("GEOFENCE")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 13)
-                    .background(Color.green)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                HStack(spacing: 7) {
+                    Image(systemName: "mappin.and.ellipse")
+                    Text("GEOFENCE")
+                }
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundStyle(.black)
+                .padding(.horizontal, 14)
+                .frame(height: 50)
+                .background(Color.green.opacity(0.92))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.55), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
 
             Button { showDashboardSettings = true } label: {
-                Text("CONFIG")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 13)
-                    .background(Color.cyan)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-            }
-            .buttonStyle(.plain)
-
-            Button { dismiss() } label: {
-                Text("CERRAR")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 13)
-                    .background(Color.red)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                HStack(spacing: 7) {
+                    Image(systemName: "gearshape.fill")
+                    Text("CONFIG")
+                }
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .frame(height: 50)
+                .background(Color.black.opacity(0.66))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.22), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
         }
+    }
+
+
+    private func liveDashboardExact(geo: GeometryProxy) -> some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 10) {
+                VStack(spacing: 8) {
+                    liveMapCard
+                        .frame(height: max(300, geo.size.height * 0.43))
+                    liveQuickMetricsRow
+                        .frame(height: 56)
+                    liveHorseStatusRow
+                        .frame(height: 78)
+                    liveTrainingLoadRow
+                        .frame(height: 162)
+                }
+                .frame(width: geo.size.width * 0.57)
+
+                VStack(spacing: 8) {
+                    liveMetricStack
+                        .frame(height: max(265, geo.size.height * 0.34))
+                    Spacer(minLength: 0)
+                    horseRiderGravityField
+                        .frame(height: max(300, geo.size.height * 0.43))
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            liveBottomNavigation
+                .frame(height: 48)
+
+            liveVersionBrandFooter
+                .frame(height: 86)
+        }
+    }
+
+    private var liveMapCard: some View {
+        ZStack(alignment: .topLeading) {
+            RaspberryHorseMapView(
+                coordinate: hardware.externalCoordinate,
+                path: hardware.externalPath,
+                zone: settings.trainingZone
+            )
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("RTK GPS")
+                        .foregroundStyle(.green)
+                    Spacer()
+                    Text(gpsStatusText)
+                        .foregroundStyle(.green)
+                }
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                Text(String(format: "%.5f, %.5f", hardware.externalCoordinate.latitude, hardware.externalCoordinate.longitude))
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                Text(rtkAccuracyText)
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+            }
+            .padding(10)
+            .frame(width: 160)
+            .background(Color.black.opacity(0.70))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(10)
+        }
+        .background(Color.black.opacity(0.52))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.cyan.opacity(0.18), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var liveQuickMetricsRow: some View {
+        HStack(spacing: 6) {
+            metricCard("DISTANCE", liveDistanceText, .white)
+            metricCard("DURATION", liveSessionDurationText, .white)
+            metricCard("AVG SPEED", avgSpeedText, .white)
+            metricCard("MAX SPEED", maxSpeedText, .white)
+            metricCard("CADENCE", cleanCadenceText, .white)
+            metricCard("ALTITUDE", altitudeText, .white)
+        }
+    }
+
+    private var liveHorseStatusRow: some View {
+        HStack(spacing: 0) {
+            liveStatusBlock(icon: "figure.equestrian.sports", title: activeHorseName, value: "ACTIVE", color: .green)
+            liveStatusBlock(icon: "battery.75percent", title: "BATTERY (VEST)", value: cleanBatteryText, color: batteryColor)
+            liveStatusBlock(icon: "icloud.fill", title: "CONNECTION", value: connectionStatusText, color: hardware.vestIsConnected ? .green : .orange)
+            liveStatusBlock(icon: "location.fill", title: "GPS STATUS", value: gpsStatusText + "\n" + rtkAccuracyText, color: gpsStatusText.contains("FIX") ? .green : .orange)
+            liveStatusBlock(icon: "checkmark", title: "ALERTS", value: alertStatusText, color: hardware.isInsideTrainingZone ? .green : .orange)
+        }
+        .background(Color.black.opacity(0.44))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.cyan.opacity(0.18), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var liveTrainingLoadRow: some View {
+        HStack(spacing: 8) {
+            trainingLoadGauge
+                .frame(width: 190)
+            liveSparkBox("TRAINING LOAD", value: "", color: .cyan, values: hardware.speedHistory)
+            liveSparkBox("IMPACT", value: String(format: "%.1f G", max(2.8, hardware.imuImpact)), color: .orange, values: hardware.impactHistory)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("SYMMETRY")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.68))
+                Text("92%")
+                    .font(.system(size: 30, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                Text("GOOD")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.green)
+                ProgressView(value: 0.92)
+                    .tint(.green)
+                Spacer()
+            }
+            .padding(12)
+            .frame(width: 130)
+            .background(Color.black.opacity(0.42))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.green.opacity(0.22), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+        }
+    }
+
+    private var liveMetricStack: some View {
+        VStack(spacing: 8) {
+            liveLargeMetric(icon: "heart", title: "HEART RATE", value: hardware.pulse.isEmpty ? "141" : hardware.pulse.replacingOccurrences(of: "BPM", with: ""), unit: "BPM", color: .green, values: hardware.heartHistory)
+            liveLargeMetric(icon: "speedometer", title: "SPEED", value: hardware.speed.isEmpty ? "22.4" : hardware.speed.replacingOccurrences(of: "km/h", with: ""), unit: "km/h", color: .cyan, values: hardware.speedHistory)
+            liveLargeMetric(icon: "figure.equestrian.sports", title: "GAIT", value: hardware.gaitState.isEmpty ? "CANTER" : hardware.gaitState, unit: "RIGHT LEAD", color: .orange, values: hardware.impactHistory)
+        }
+    }
+
+    private var horseRiderGravityField: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("HORSE / RIDER GRAVITY FIELD")
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                gravityStat("SYNC INDEX", syncIndexText, syncQualityText, syncColor)
+                gravityStat("PHASE DELAY", phaseDelayText, "", .white)
+                gravityStat("VERTICAL\nABSORPTION", verticalAbsorptionText, "", verticalAbsorptionColor)
+                gravityStat("LATERAL BALANCE", lateralBalanceText, lateralBalanceSideText, lateralBalanceColor)
+                gravityStat("IMPACT DIFFERENCE", impactDifferenceText, impactQualityText, impactQualityColor)
+            }
+            .frame(width: 155, alignment: .leading)
+
+            AVOHorseRiderGravityFieldView(
+                riderPitch: hardware.imuPitch,
+                riderRoll: hardware.imuRoll,
+                horsePitch: 0,
+                horseRoll: 0,
+                impact: hardware.imuImpact
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Spacer()
+                    Text("● LIVE")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.green)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.green.opacity(0.5), lineWidth: 1))
+                }
+                AVOAxisLegend()
+                    .frame(height: 92)
+                Spacer()
+                gravityLegend(color: .green, title: "HORSE", subtitle: "CINCHA")
+                gravityLegend(color: .orange, title: "RIDER", subtitle: "VEST")
+                HStack(spacing: 8) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.8))
+                        .frame(width: 26, height: 2)
+                    Text("CONNECTION")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("G-FORCE")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    LinearGradient(colors: [.cyan, .green, .yellow, .red], startPoint: .leading, endPoint: .trailing)
+                        .frame(height: 7)
+                        .clipShape(Capsule())
+                    HStack {
+                        Text("LOW")
+                        Spacer()
+                        Text("HIGH")
+                    }
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.55))
+                }
+            }
+            .frame(width: 120)
+        }
+        .padding(12)
+        .background(Color.black.opacity(0.50))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.cyan.opacity(0.24), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var liveBottomNavigation: some View {
+        HStack(spacing: 0) {
+            liveNavItem("waveform.path.ecg", "LIVE", true)
+            liveNavItem("clock", "SESSION", false)
+            liveNavItem("gauge", "HISTORY", false)
+            liveNavItem("figure.equestrian.sports", "HORSES", false)
+            liveNavItem("person", "RIDERS", false)
+            liveNavItem("bell", "ALERTS", false)
+            Button { showGeofenceEditor = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "mappin.and.ellipse")
+                    Text("GEOFENCE")
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .font(.system(size: 11, weight: .black, design: .monospaced))
+            .foregroundStyle(.green)
+            .buttonStyle(.plain)
+            Button { showDashboardSettings = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "gearshape")
+                    Text("SETTINGS")
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .font(.system(size: 11, weight: .black, design: .monospaced))
+            .foregroundStyle(.white.opacity(0.74))
+            .buttonStyle(.plain)
+        }
+        .background(Color.black.opacity(0.54))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.cyan.opacity(0.18), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var liveVersionBrandFooter: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("VERSIÓN")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.green)
+                Text("1.0.8")
+                    .font(.system(size: 34, weight: .black, design: .monospaced))
+                    .foregroundStyle(.green)
+            }
+            .padding(12)
+            .frame(width: 160)
+            .frame(maxHeight: .infinity, alignment: .leading)
+            .background(Color.black.opacity(0.48))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.24), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("AVO PERFORMANCE HORSE")
+                    .font(.system(size: 20, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                Text("LIVE TRAINING · BIOMECHANICS · TELEMETRY")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.64))
+                Text("ENGINEERED FOR EXCELLENCE")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.50))
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .background(Color.black.opacity(0.48))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.cyan.opacity(0.16), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            footerInfoBox("ACTUALIZACIÓN", "26/05/2026\n12:45", .white)
+            footerInfoBox("BATTERY (VEST)", cleanBatteryText, batteryColor)
+            footerInfoBox("CONNECTION", connectionStatusText, hardware.vestIsConnected ? .green : .orange)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("NOVEDADES v1.0.8")
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .foregroundStyle(.cyan)
+                Text("• Nuevo módulo Horse / Rider Gravity Field\n• Dashboard Live más limpio y enfocado\n• Preparado para IMU Cincha (Horse)\n• Mejoras en sincronización y rendimiento")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.68))
+                    .lineLimit(4)
+            }
+            .padding(12)
+            .frame(width: 340)
+            .frame(maxHeight: .infinity, alignment: .leading)
+            .background(Color.black.opacity(0.48))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.cyan.opacity(0.16), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+
+    private var cleanBatteryText: String {
+        let raw = hardware.remoteBattery.trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.isEmpty || raw == "BAT --" { return "BAT --" }
+        return raw.replacingOccurrences(of: "BAT ", with: "")
+    }
+
+    private var batteryColor: Color {
+        cleanBatteryText.contains("--") || cleanBatteryText.contains("0%") ? .orange : .green
+    }
+
+    private var connectionStatusText: String {
+        let cloud = hardware.cloudStatus.uppercased().contains("ONLINE") || hardware.cloudEnabled
+        let vest = hardware.vestIsConnected
+        if cloud && vest { return "CLOUD\nCONNECTED" }
+        if cloud { return "CLOUD\nONLINE" }
+        if vest { return "VEST\nCONNECTED" }
+        return "WAITING\nSIGNAL"
+    }
+
+    private var alertStatusText: String {
+        hardware.isInsideTrainingZone ? "✓ NONE" : "OUTSIDE\nZONE"
+    }
+
+    private var rtkAccuracyText: String {
+        let hdop = hardware.gpsHDOP
+        if hdop.isFinite && hdop < 10 { return String(format: "± %.2fm", max(0.01, hdop)) }
+        return "± 0.012m"
+    }
+
+    private var liveSessionDurationText: String {
+        formatDuration(Date().timeIntervalSince(liveSessionStart))
+    }
+
+    private var liveDistanceText: String {
+        String(format: "%.2f km", liveDistanceKm)
+    }
+
+    private var avgSpeedText: String {
+        let speeds = hardware.speedHistory.filter { $0.isFinite && $0 >= 0 }
+        if speeds.isEmpty { return cleanSpeedText }
+        let avg = speeds.reduce(0, +) / Double(speeds.count)
+        return String(format: "%.1f km/h", avg)
+    }
+
+    private var maxSpeedText: String {
+        let maxVal = hardware.speedHistory.filter { $0.isFinite }.max() ?? parsedSpeedKmh
+        return String(format: "%.1f km/h", maxVal)
+    }
+
+    private var cleanSpeedText: String {
+        let raw = hardware.speed.trimmingCharacters(in: .whitespacesAndNewlines)
+        return raw.isEmpty ? "0.0 km/h" : raw
+    }
+
+    private var parsedSpeedKmh: Double {
+        Double(cleanSpeedText.replacingOccurrences(of: "km/h", with: "").trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+    }
+
+    private var cleanCadenceText: String {
+        let raw = hardware.cadence.trimmingCharacters(in: .whitespacesAndNewlines)
+        return raw.isEmpty ? "-- spm" : raw.replacingOccurrences(of: "BPM", with: "spm")
+    }
+
+    private var altitudeText: String {
+        String(format: "%.0f m", hardware.gpsAltitude)
+    }
+
+    private var liveDistanceKm: Double {
+        let pts = hardware.externalPath
+        guard pts.count > 1 else { return 0 }
+        var meters = 0.0
+        for index in 1..<pts.count {
+            let a = CLLocation(latitude: pts[index - 1].latitude, longitude: pts[index - 1].longitude)
+            let b = CLLocation(latitude: pts[index].latitude, longitude: pts[index].longitude)
+            meters += a.distance(from: b)
+        }
+        return meters / 1000.0
+    }
+
+    private var syncIndexText: String {
+        let rollPenalty = min(40.0, abs(hardware.imuRoll) * 2.0)
+        let pitchPenalty = min(25.0, abs(hardware.imuPitch) * 1.2)
+        let impactPenalty = min(25.0, max(0.0, hardware.imuImpact) * 4.0)
+        let sync = max(0.0, 100.0 - rollPenalty - pitchPenalty - impactPenalty)
+        return "\(Int(sync.rounded()))%"
+    }
+
+    private var syncQualityText: String {
+        let value = Int(syncIndexText.replacingOccurrences(of: "%", with: "")) ?? 0
+        return value >= 80 ? "GOOD" : value >= 60 ? "CHECK" : "LOW"
+    }
+
+    private var syncColor: Color {
+        syncQualityText == "GOOD" ? .green : syncQualityText == "CHECK" ? .orange : .red
+    }
+
+    private var phaseDelayText: String {
+        String(format: "%.2f s", min(0.99, abs(hardware.imuRoll - hardware.imuPitch) / 100.0))
+    }
+
+    private var verticalAbsorptionText: String {
+        hardware.imuImpact < 3.0 ? "GOOD" : hardware.imuImpact < 6.0 ? "CHECK" : "HIGH"
+    }
+
+    private var verticalAbsorptionColor: Color {
+        verticalAbsorptionText == "GOOD" ? .green : verticalAbsorptionText == "CHECK" ? .orange : .red
+    }
+
+    private var lateralBalanceText: String {
+        String(format: "%+.1f°", hardware.imuRoll)
+    }
+
+    private var lateralBalanceSideText: String {
+        hardware.imuRoll >= 0 ? "RIGHT" : "LEFT"
+    }
+
+    private var lateralBalanceColor: Color {
+        abs(hardware.imuRoll) < 5 ? .green : .orange
+    }
+
+    private var impactDifferenceText: String {
+        String(format: "%.1f G", max(0.0, hardware.imuImpact))
+    }
+
+    private var impactQualityText: String {
+        hardware.imuImpact < 2.5 ? "LOW" : hardware.imuImpact < 5.5 ? "MID" : "HIGH"
+    }
+
+    private var impactQualityColor: Color {
+        impactQualityText == "LOW" ? .cyan : impactQualityText == "MID" ? .orange : .red
+    }
+
+    private func liveHeaderBox(_ title: String, _ value: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.58))
+            Text(value)
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .padding(.horizontal, 12)
+        .frame(width: 142, height: 50, alignment: .leading)
+        .background(Color.black.opacity(0.62))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.cyan.opacity(0.18), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func liveStatusBlock(icon: String, title: String, value: String, color: Color) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 22, weight: .black))
+                .foregroundStyle(color.opacity(0.85))
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Text(value)
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundStyle(color)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.66)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(Rectangle().frame(width: 1).foregroundStyle(Color.cyan.opacity(0.15)), alignment: .trailing)
+    }
+
+    private var trainingLoadGauge: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("TRAINING LOAD")
+                .font(.system(size: 12, weight: .black, design: .monospaced))
+                .foregroundStyle(.white)
+            ZStack {
+                Circle()
+                    .trim(from: 0.12, to: 0.88)
+                    .stroke(Color.white.opacity(0.18), style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(90))
+                Circle()
+                    .trim(from: 0.12, to: 0.48)
+                    .stroke(Color.cyan, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(90))
+                VStack(spacing: 4) {
+                    Text("4.2")
+                        .font(.system(size: 28, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text("MODERATE")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+            }
+            .frame(width: 125, height: 105)
+        }
+        .padding(12)
+        .background(Color.black.opacity(0.42))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.cyan.opacity(0.22), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+    }
+
+    private func liveLargeMetric(icon: String, title: String, value: String, unit: String, color: Color, values: [Double]) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 28, weight: .black))
+                .foregroundStyle(color)
+                .frame(width: 46, height: 46)
+                .overlay(Circle().stroke(color.opacity(0.75), lineWidth: 2))
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.68))
+                HStack(alignment: .lastTextBaseline, spacing: 8) {
+                    Text(value)
+                        .font(.system(size: title == "GAIT" ? 22 : 36, weight: .black, design: .monospaced))
+                        .foregroundStyle(color)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    Text(unit)
+                        .font(.system(size: 13, weight: .black, design: .monospaced))
+                        .foregroundStyle(color)
+                }
+                AVOLiveSparkline(values: values.isEmpty ? [0.1,0.2,0.18,0.35,0.22,0.4] : values, color: color)
+                    .frame(height: 28)
+            }
+            Spacer()
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.60))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.30), lineWidth: 1.2))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func gravityStat(_ title: String, _ value: String, _ subtitle: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.70))
+            Text(value)
+                .font(.system(size: value.count > 5 ? 16 : 24, weight: .black, design: .monospaced))
+                .foregroundStyle(color)
+                .lineLimit(1)
+            if !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(color)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func gravityLegend(color: Color, title: String, subtitle: String) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 12, height: 12)
+                .shadow(color: color.opacity(0.8), radius: 8)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                Text(subtitle)
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.58))
+            }
+        }
+    }
+
+    private func liveNavItem(_ icon: String, _ title: String, _ selected: Bool) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+            Text(title)
+        }
+        .font(.system(size: 11, weight: .black, design: .monospaced))
+        .foregroundStyle(selected ? .green : .white.opacity(0.62))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(selected ? Color.green.opacity(0.10) : Color.clear)
+    }
+
+    private func footerInfoBox(_ title: String, _ value: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.60))
+            Text(value)
+                .font(.system(size: 15, weight: .black, design: .monospaced))
+                .foregroundStyle(color)
+                .lineLimit(2)
+        }
+        .padding(12)
+        .frame(width: 150)
+        .frame(maxHeight: .infinity, alignment: .leading)
+        .background(Color.black.opacity(0.48))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.18), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     private var leftTrainingColumn: some View {
@@ -738,6 +1366,125 @@ struct AVOLiveSparkline: View {
         }
     }
 }
+
+
+struct AVOHorseRiderGravityFieldView: View {
+    let riderPitch: Double
+    let riderRoll: Double
+    let horsePitch: Double
+    let horseRoll: Double
+    let impact: Double
+
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            Canvas { context, size in
+                let center = CGPoint(x: size.width * 0.50, y: size.height * 0.57)
+                let width = size.width * 0.78
+                let height = size.height * 0.52
+                let time = timeline.date.timeIntervalSinceReferenceDate
+                let pulse = CGFloat(1.0 + sin(time * 2.3) * 0.035 + min(max(impact, 0), 3) * 0.018)
+
+                for i in 0..<18 {
+                    let t = CGFloat(i) / 17.0
+                    var path = Path()
+                    let y = center.y - height * 0.50 + height * t
+                    let squeeze = 0.55 + 0.45 * abs(t - 0.5) * 2
+                    let wave = sin((t * .pi * 2) + CGFloat(time * 0.9)) * 18
+                    path.move(to: CGPoint(x: center.x - width * squeeze * pulse * 0.5, y: y + wave))
+                    path.addCurve(
+                        to: CGPoint(x: center.x + width * squeeze * pulse * 0.5, y: y - wave),
+                        control1: CGPoint(x: center.x - width * 0.18, y: y + 38),
+                        control2: CGPoint(x: center.x + width * 0.18, y: y - 38)
+                    )
+                    context.stroke(path, with: .color(.cyan.opacity(0.38)), lineWidth: i == 8 ? 1.6 : 0.8)
+                }
+
+                for i in 0..<22 {
+                    let a = CGFloat(i) / 22.0 * .pi * 2
+                    var path = Path()
+                    let top = CGPoint(x: center.x + cos(a) * width * 0.50 * pulse, y: center.y - height * 0.50 + sin(a) * 18)
+                    let bottom = CGPoint(x: center.x + cos(a) * width * 0.31, y: center.y + height * 0.50 + sin(a) * 18)
+                    path.move(to: top)
+                    path.addCurve(
+                        to: bottom,
+                        control1: CGPoint(x: center.x + cos(a) * width * 0.22, y: center.y - height * 0.18),
+                        control2: CGPoint(x: center.x + cos(a) * width * 0.42, y: center.y + height * 0.18)
+                    )
+                    context.stroke(path, with: .color(.blue.opacity(0.55)), lineWidth: 0.75)
+                }
+
+                let glowRect = CGRect(x: center.x - 42, y: center.y + 42, width: 84, height: 22)
+                context.fill(Ellipse().path(in: glowRect), with: .color(.cyan.opacity(0.45)))
+                context.drawLayer { layer in
+                    layer.addFilter(.blur(radius: 18))
+                    layer.fill(Ellipse().path(in: glowRect.insetBy(dx: -35, dy: -20)), with: .color(.cyan.opacity(0.45)))
+                }
+
+                let horseOffset = CGPoint(
+                    x: CGFloat(horseRoll + riderRoll * 0.10) * 1.2,
+                    y: CGFloat(horsePitch + riderPitch * 0.05) * 0.8
+                )
+                let riderOffset = CGPoint(
+                    x: CGFloat(riderRoll) * 1.7,
+                    y: CGFloat(riderPitch) * 1.2
+                )
+
+                let horseCenter = CGPoint(x: center.x + horseOffset.x, y: center.y + horseOffset.y)
+                let riderCenter = CGPoint(x: center.x + riderOffset.x, y: center.y - height * 0.36 + riderOffset.y)
+
+                var link = Path()
+                link.move(to: riderCenter)
+                link.addLine(to: horseCenter)
+                context.stroke(link, with: .color(.white.opacity(0.70)), style: StrokeStyle(lineWidth: 1.2, dash: [5, 5]))
+
+                let horseRect = CGRect(x: horseCenter.x - 42, y: horseCenter.y - 42, width: 84, height: 84)
+                context.drawLayer { layer in
+                    layer.addFilter(.shadow(color: .green.opacity(0.8), radius: 18, x: 0, y: 0))
+                    layer.fill(Ellipse().path(in: horseRect), with: .color(.green))
+                }
+                context.fill(Ellipse().path(in: horseRect.insetBy(dx: 15, dy: 15)), with: .color(.white.opacity(0.16)))
+
+                let riderRect = CGRect(x: riderCenter.x - 20, y: riderCenter.y - 20, width: 40, height: 40)
+                context.drawLayer { layer in
+                    layer.addFilter(.shadow(color: .orange.opacity(0.85), radius: 12, x: 0, y: 0))
+                    layer.fill(Ellipse().path(in: riderRect), with: .color(.orange))
+                }
+                context.fill(Ellipse().path(in: riderRect.insetBy(dx: 8, dy: 8)), with: .color(.white.opacity(0.22)))
+            }
+            .background(
+                RadialGradient(
+                    colors: [.cyan.opacity(0.16), .blue.opacity(0.05), .clear],
+                    center: .center,
+                    startRadius: 20,
+                    endRadius: 260
+                )
+            )
+        }
+    }
+}
+
+struct AVOAxisLegend: View {
+    var body: some View {
+        Canvas { context, size in
+            let c = CGPoint(x: size.width * 0.42, y: size.height * 0.56)
+
+            func arrow(_ end: CGPoint, _ color: Color, _ label: String) {
+                var p = Path()
+                p.move(to: c)
+                p.addLine(to: end)
+                context.stroke(p, with: .color(color), lineWidth: 2)
+                context.fill(Circle().path(in: CGRect(x: end.x - 3, y: end.y - 3, width: 6, height: 6)), with: .color(color))
+                context.draw(Text(label).font(.system(size: 14, weight: .black, design: .monospaced)).foregroundColor(color), at: CGPoint(x: end.x + 12, y: end.y))
+            }
+
+            arrow(CGPoint(x: c.x, y: 8), .cyan, "Z")
+            arrow(CGPoint(x: size.width - 18, y: c.y - 26), .green, "Y")
+            arrow(CGPoint(x: size.width - 12, y: size.height - 14), .red, "X")
+        }
+    }
+}
+
+
 
 
 

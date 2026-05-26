@@ -27,6 +27,12 @@ workflows:
             mv AVOHorsePose.mlpackage ../DisabledModels/AVOHorsePose.mlpackage
           fi
 
+      - name: Sanity fix Swift syntax
+        script: |
+          echo "Sanity check: removing accidental .frame. typo if present"
+          find AVO.swiftpm -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/\.frame\.\s*\(/.frame(/g'
+          grep -R "\.frame\." -n AVO.swiftpm && exit 1 || true
+
       - name: Build Swift Playgrounds IPA
         script: |
           cd AVO.swiftpm
