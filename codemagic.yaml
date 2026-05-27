@@ -16,16 +16,33 @@ workflows:
         script: |
           xcode-project use-profiles
 
-      - name: Limpiar modelo CoreML roto
+      - name: Limpiar CoreML/entrenamiento roto antes de archivar
         script: |
           cd AVO.swiftpm
 
+          # No empaquetar modelos de entrenamiento ni .mlpackage rotos en el target de App Store.
           perl -0pi -e 's/\s*\.process\("AVOHorsePose\.mlpackage"\),//g' Package.swift
+          perl -0pi -e 's/\s*\.process\("ExternalTrainingModels"\),//g' Package.swift
 
-          if [ -d "AVOHorsePose.mlpackage" ]; then
-            mkdir -p ../DisabledModels
-            mv AVOHorsePose.mlpackage ../DisabledModels/AVOHorsePose.mlpackage
-          fi
+          mkdir -p ../DisabledModels
+          find . -name "*.pt" -o -name "*.pth" -o -name "*.onnx" -o -name "*.mlpackage" | while read item; do
+            base=$(basename "$item")
+            mv "$item" "../DisabledModels/$base" || true
+          done
+
+          rm -rf ExternalTrainingModels __MACOSX .DS_Store
+          find . -name ".DS_Store" -o -name "._*" -delete
+          find . -name "*.md" -o -name "*.txt" | while read doc; do
+            case "$doc" in
+              ./Resources/*) rm -f "$doc" ;;
+            esac
+          done
+
+      - name: Sanity fix Swift syntax
+        script: |
+          echo "Sanity check: removing accidental .frame. typo if present"
+          find AVO.swiftpm -name "*.swift" -print0 | xargs -0 perl -0pi -e 's/\.frame\.\s*\(/.frame(/g'
+          grep -R "\.frame\." -n AVO.swiftpm && exit 1 || true
 
       - name: Build Swift Playgrounds IPA
         script: |
@@ -89,7 +106,7 @@ workflows:
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - DisabledModels/AVOHorsePose.mlpackage
+      - DisabledModels/*
 
     publishing:
       app_store_connect:

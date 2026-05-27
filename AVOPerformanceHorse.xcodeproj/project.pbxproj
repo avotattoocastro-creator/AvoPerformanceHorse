@@ -299,8 +299,6 @@
 		99207713C3320E042ED490B0 = {isa = PBXBuildFile; fileRef = 83572F31C1160B7DEC5CEAAC;};
 		067702F90C6D4B47C90E7674 = {isa = PBXFileReference; lastKnownFileType = folder; path = "AVO.swiftpm/Resources"; sourceTree = "<group>";};
 		EEC838B5D94206395442E7DE = {isa = PBXBuildFile; fileRef = 067702F90C6D4B47C90E7674;};
-		099A23907E15F8111B562CD0 = {isa = PBXFileReference; lastKnownFileType = wrapper.mlpackage; path = "AVO.swiftpm/AVOHorsePose.mlpackage"; sourceTree = "<group>";};
-		01145FE412C7DE87016B5D39 = {isa = PBXBuildFile; fileRef = 099A23907E15F8111B562CD0;};
 		CAF9B6B99962BF5C22648242 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = AVOPerformanceHorse/Info.plist; sourceTree = "<group>";};
 		645EC79F22BEC5EFE970061D = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AVOPerformanceHorse/AVOPerformanceHorse.entitlements; sourceTree = "<group>";};
 		3345247A31290EDC45601D7A = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AVOPerformanceHorse.app; sourceTree = BUILT_PRODUCTS_DIR;};
@@ -454,7 +452,6 @@
 		81D01C0FD21E979897052079 = {isa = PBXGroup; children = (
 				83572F31C1160B7DEC5CEAAC,
 				067702F90C6D4B47C90E7674,
-				099A23907E15F8111B562CD0,
 			); name = Resources; sourceTree = "<group>";};
 		7676F58CF0C9BB5C3E838406 = {isa = PBXGroup; children = (
 				CAF9B6B99962BF5C22648242,
@@ -619,7 +616,6 @@
 		AF5FE74DAAF3C2BCB23F9A40 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (
 				99207713C3320E042ED490B0,
 				EEC838B5D94206395442E7DE,
-				01145FE412C7DE87016B5D39,
 			); runOnlyForDeploymentPostprocessing = 0;};
 		71FE200D317990948E24D8EE = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (
 			); runOnlyForDeploymentPostprocessing = 0;};
@@ -720,7 +716,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = AVOPerformanceHorse/AVOPerformanceHorse.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 4J2D6P5BJX;
 				ENABLE_PREVIEWS = YES;
@@ -728,7 +724,7 @@
 				INFOPLIST_FILE = AVOPerformanceHorse/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.avoperformance.horse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -741,7 +737,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = AVOPerformanceHorse/AVOPerformanceHorse.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 4J2D6P5BJX;
 				ENABLE_PREVIEWS = YES;
@@ -749,7 +745,7 @@
 				INFOPLIST_FILE = AVOPerformanceHorse/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.avoperformance.horse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
