@@ -38,7 +38,6 @@ let package = Package(
                 .bluetoothAlways(purposeString: "La app utiliza Bluetooth para conectarse con sensores externos y dispositivos de telemetría equina."),
                 .localNetwork(purposeString: "La app utiliza la red para sincronizar datos con el servidor y dispositivos de análisis en tiempo real."),
                 .locationWhenInUse(purposeString: "La app necesita la ubicación para mostrar el caballo en el mapa, controlar geocercas de entrenamiento y registrar sesiones GPS/RTK en tiempo real."),
-                .pushNotifications,
                 .fileAccess(.userSelectedFiles, mode: .readWrite)
             ],
             appCategory: .business
