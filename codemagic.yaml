@@ -43,6 +43,14 @@ workflows:
 
           echo "PROFILE_UUID=$PROFILE_UUID"
 
+          # AVO BUILD38 HARD LOCK: evitar rechazo App Store por CFBundleVersion duplicado.
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.2.5" ../AVOPerformanceHorse/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 38" ../AVOPerformanceHorse/Info.plist || true
+          perl -0pi -e 's/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = 38;/g; s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = 1.2.5;/g' ../AVOPerformanceHorse.xcodeproj/project.pbxproj || true
+          echo "AVO VERSION CHECK BEFORE ARCHIVE:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ../AVOPerformanceHorse/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ../AVOPerformanceHorse/Info.plist || true
+
           mkdir -p ../build/ios/archive
           mkdir -p ../build/ios/ipa
 
@@ -57,6 +65,8 @@ workflows:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE="$PROFILE_UUID" \
+            MARKETING_VERSION=1.2.5 \
+            CURRENT_PROJECT_VERSION=38 \
             COREML_CODEGEN_LANGUAGE=Swift \
             COMPILER_INDEX_STORE_ENABLE=NO
 
