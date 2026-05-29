@@ -7,7 +7,7 @@ struct AVOHomeLauncherView: View {
     @State private var showUIStudio = false
     @StateObject private var uiLayoutStore = AVOVisualLayoutStore()
 
-    private let appVersionText = "VERSION 1.2.5"
+    private let appVersionText = "VERSION 1.2.6"
 
     var body: some View {
         GeometryReader { geo in
