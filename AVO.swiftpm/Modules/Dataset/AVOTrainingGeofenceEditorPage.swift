@@ -2,14 +2,6 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
-private struct AVOSavedGeofencePreset: Identifiable, Codable {
-    var id: UUID = UUID()
-    var name: String
-    var horseId: String
-    var zone: TrainingZone
-    var savedAt: Date = Date()
-}
-
 struct AVOTrainingGeofenceEditorPage: View {
     @ObservedObject var hardware: AVOHardwareReceiver
     @ObservedObject var settings: HardwareSettings
@@ -23,8 +15,6 @@ struct AVOTrainingGeofenceEditorPage: View {
     @State private var mapPosition: MapCameraPosition = .automatic
     @State private var drawMode = true
     @State private var drawnPolygon: [CLLocationCoordinate2D] = []
-    @State private var savedPresets: [AVOSavedGeofencePreset] = []
-    @State private var selectedPresetID: UUID?
 
     private var activeHorseName: String {
         let stable = stableStore.selectedHorseName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -79,7 +69,7 @@ struct AVOTrainingGeofenceEditorPage: View {
         }
         .preferredColorScheme(.dark)
         .statusBar(hidden: true)
-        .onAppear { loadSavedPresets(); loadZone() }
+        .onAppear { loadZone() }
     }
 
     private var header: some View {
@@ -170,7 +160,6 @@ struct AVOTrainingGeofenceEditorPage: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 10) {
                 panelTitle("GEOFENCE DATA")
-                savedGeofenceSelector
                 modeButtons
                 labeledField("NAME", text: $zoneName)
                 HStack(spacing: 8) {
@@ -202,10 +191,6 @@ struct AVOTrainingGeofenceEditorPage: View {
                     actionButton("SAVE APP", .green) { saveZoneOnly() }
                     actionButton("SEND VEST", .orange) { sendZoneToVest() }
                 }
-                HStack(spacing: 8) {
-                    actionButton("SAVE PRESET", .cyan) { savePreset() }
-                    actionButton("LOAD PRESET", .green) { loadSelectedPreset() }
-                }
 
                 ProBox("VEST COMMAND STATUS") {
                     VStack(alignment: .leading, spacing: 6) {
@@ -218,31 +203,6 @@ struct AVOTrainingGeofenceEditorPage: View {
                 }
             }
         }
-    }
-
-    private var savedGeofenceSelector: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("SAVED GEOFENCES")
-                .font(.system(size: 9, weight: .black, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.62))
-            if savedPresets.isEmpty {
-                Text("No saved geofences yet. Save one to associate it with this horse.")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.55))
-                    .lineLimit(2)
-            } else {
-                Picker("Saved geofence", selection: Binding(get: { selectedPresetID ?? savedPresets.first?.id }, set: { selectedPresetID = $0 })) {
-                    ForEach(savedPresets) { preset in
-                        Text("\(preset.name) · \(preset.horseId)").tag(Optional(preset.id))
-                    }
-                }
-                .pickerStyle(.menu)
-                .tint(.green)
-            }
-        }
-        .padding(8)
-        .background(Color.black.opacity(0.45))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     private var modeButtons: some View {
@@ -260,7 +220,7 @@ struct AVOTrainingGeofenceEditorPage: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            Text("Geocerca: \(drawnPolygon.count >= 3 ? "polígono dibujado" : "círculo") · payload preparado para chaleco · v1.2.1 build 34.")
+            Text("Geocerca: \(drawnPolygon.count >= 3 ? "polígono dibujado" : "círculo") · payload preparado para chaleco.")
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.62))
             Spacer()
@@ -271,43 +231,6 @@ struct AVOTrainingGeofenceEditorPage: View {
         .padding(.horizontal, 10)
         .background(Color.black.opacity(0.50))
         .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
-
-    private func loadSavedPresets() {
-        guard let data = UserDefaults.standard.data(forKey: "AVO_SAVED_GEOFENCE_PRESETS"),
-              let presets = try? JSONDecoder().decode([AVOSavedGeofencePreset].self, from: data) else { return }
-        savedPresets = presets
-        selectedPresetID = presets.first?.id
-    }
-
-    private func persistSavedPresets() {
-        if let data = try? JSONEncoder().encode(savedPresets) {
-            UserDefaults.standard.set(data, forKey: "AVO_SAVED_GEOFENCE_PRESETS")
-        }
-    }
-
-    private func savePreset() {
-        let preset = AVOSavedGeofencePreset(name: draftZone.name, horseId: activeHorseName, zone: draftZone)
-        savedPresets.removeAll { $0.name == preset.name && $0.horseId == preset.horseId }
-        savedPresets.insert(preset, at: 0)
-        if savedPresets.count > 20 { savedPresets.removeLast(savedPresets.count - 20) }
-        selectedPresetID = preset.id
-        persistSavedPresets()
-        saveZoneOnly()
-    }
-
-    private func loadSelectedPreset() {
-        guard let id = selectedPresetID, let preset = savedPresets.first(where: { $0.id == id }) else { return }
-        let zone = preset.zone
-        zoneName = zone.name
-        latitudeText = String(format: "%.6f", zone.latitude)
-        longitudeText = String(format: "%.6f", zone.longitude)
-        radiusMeters = zone.radiusMeters
-        drawnPolygon = zone.polygonCoordinates
-        settings.trainingZone = zone
-        hardware.setActiveVestHorse(preset.horseId)
-        hardware.updateTrainingZonePresence(zone)
-        centerMap(on: zone.coordinate)
     }
 
     private func loadZone() {
@@ -327,21 +250,17 @@ struct AVOTrainingGeofenceEditorPage: View {
     }
 
     private func saveZoneOnly() {
-        let zone = draftZone
-        settings.trainingZone = zone
-        hardware.geofenceStatus = "GEOFENCE SAVED APP · SENDING SERVER"
+        settings.trainingZone = draftZone
+        hardware.geofenceStatus = "GEOFENCE SAVED APP"
         hardware.setActiveVestHorse(activeHorseName)
-        hardware.updateTrainingZonePresence(zone)
-        hardware.saveTrainingZoneToServer(zone, horseName: activeHorseName)
+        hardware.updateTrainingZonePresence(settings.trainingZone)
     }
 
     private func sendZoneToVest() {
-        let zone = draftZone
-        settings.trainingZone = zone
+        settings.trainingZone = draftZone
         hardware.setActiveVestHorse(activeHorseName)
-        hardware.updateTrainingZonePresence(zone)
-        hardware.saveTrainingZoneToServer(zone, horseName: activeHorseName)
-        hardware.sendTrainingZone(zone, horseName: activeHorseName)
+        hardware.updateTrainingZonePresence(settings.trainingZone)
+        hardware.sendTrainingZone(draftZone, horseName: activeHorseName)
     }
 
     private func centerMap(on coordinate: CLLocationCoordinate2D) {

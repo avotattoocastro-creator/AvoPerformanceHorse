@@ -48,7 +48,6 @@ let package = Package(
             name: "AppModule",
             path: ".",
             resources: [
-                .process("AVOHorsePose.mlpackage"),
                 .process("Resources")
             ],
             swiftSettings: [

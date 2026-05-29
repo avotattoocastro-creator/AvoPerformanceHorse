@@ -1,5 +1,4 @@
 import SwiftUI
-import Foundation
 
 struct AVOServerControlPage: View {
     @ObservedObject var hardware: AVOHardwareReceiver
@@ -11,7 +10,6 @@ struct AVOServerControlPage: View {
     @State private var path = "/api/telemetry"
     @State private var useHTTPS = true
     @State private var pollSeconds = 0.5
-    @State private var testPushStatus = "PUSH TEST READY"
 
     var body: some View {
         GeometryReader { geo in
@@ -103,10 +101,6 @@ struct AVOServerControlPage: View {
                 actionButton("UDP 7777", .cyan) { hardware.startUDP(port: 7777) }
                 actionButton("RESET WATCH", .orange) { hardware.startRaspberryCloud(interval: pollSeconds) }
             }
-            HStack(spacing: 8) {
-                actionButton("REGISTER APNS", .green) { AVORemotePushManager.shared.configureAndRegister() }
-                actionButton("TEST PUSH", .orange) { sendServerPushTest() }
-            }
 
             serverBox("ACTIVE ENDPOINT") {
                 statusLine("API", hardware.cloudAPI, .cyan)
@@ -159,21 +153,6 @@ struct AVOServerControlPage: View {
                 }
             }
 
-            HStack(spacing: 10) {
-                serverBox("APNS / PUSH") {
-                    statusLine("PERMISSION", AVORemotePushManager.shared.permissionGranted ? "GRANTED" : "WAITING", AVORemotePushManager.shared.permissionGranted ? .green : .orange)
-                    statusLine("TOKEN", AVORemotePushManager.shared.apnsTokenHex.isEmpty ? "NO TOKEN" : String(AVORemotePushManager.shared.apnsTokenHex.prefix(18)) + "…", AVORemotePushManager.shared.apnsTokenHex.isEmpty ? .orange : .green)
-                    statusLine("REGISTER", AVORemotePushManager.shared.lastRegisterStatus, AVORemotePushManager.shared.lastRegisterStatus.contains("ERROR") ? .red : .green)
-                    statusLine("TEST", testPushStatus, testPushStatus.contains("ERROR") ? .red : .cyan)
-                }
-                serverBox("WATCHDOG") {
-                    statusLine("STATE", vestStateText, vestStateColor)
-                    statusLine("FREEZE", hardware.vestConnectionState.uppercased().contains("FROZEN") ? "ACTIVE" : "CLEAR", hardware.vestConnectionState.uppercased().contains("FROZEN") ? .orange : .green)
-                    statusLine("ZONE", hardware.trainingZonePresence, hardware.isInsideTrainingZone ? .green : .orange)
-                    statusLine("SOURCE", "RASPBERRY SERVER", .cyan)
-                }
-            }
-
             serverBox("RAW SERVER PAYLOAD") {
                 ScrollView {
                     Text(hardware.cloudLastPayload)
@@ -188,7 +167,7 @@ struct AVOServerControlPage: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            Text("Server page v1.2.1 build 34 · endpoints: /api/vests · /api/vests/{id}/status · /api/telemetry")
+            Text("Server page v1.1.9 build 32 · endpoints: /api/vests · /api/vests/{id}/status · /api/telemetry")
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.62))
             Spacer()
@@ -290,39 +269,6 @@ struct AVOServerControlPage: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
-    }
-
-
-    private func sendServerPushTest() {
-        testPushStatus = "SENDING…"
-        guard let url = URL(string: "https://live.avoperformance.org/api/push/test") else {
-            testPushStatus = "BAD URL"
-            return
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 10
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("AVO2026", forHTTPHeaderField: "X-AVO-TOKEN")
-        let payload: [String: Any] = [
-            "title": "AVO Test Push",
-            "body": "Servidor Raspberry conectado a APNs correctamente.",
-            "vestId": hardware.selectedVestID.isEmpty ? "VEST_001" : hardware.selectedVestID,
-            "horseId": hardware.activeVestHorse.isEmpty ? "HORSE_001" : hardware.activeVestHorse
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: payload, options: [])
-        Task {
-            do {
-                let (data, response) = try await URLSession.shared.data(for: request)
-                let code = (response as? HTTPURLResponse)?.statusCode ?? -1
-                let text = String(data: data, encoding: .utf8) ?? ""
-                await MainActor.run {
-                    testPushStatus = (200...299).contains(code) ? "SENT HTTP \(code)" : "ERROR HTTP \(code): \(text.prefix(40))"
-                }
-            } catch {
-                await MainActor.run { testPushStatus = "ERROR: \(error.localizedDescription)" }
-            }
-        }
     }
 
     private func serverPill(_ title: String, _ value: String, _ color: Color) -> some View {
