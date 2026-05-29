@@ -18,8 +18,8 @@ let package = Package(
             targets: ["AppModule"],
             bundleIdentifier: "com.avoperformance.horse",
             teamIdentifier: "4J2D6P5BJX",
-            displayVersion: "1.2.1",
-            bundleVersion: "34",
+            displayVersion: "1.2.2",
+            bundleVersion: "35",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.brown),
             supportedDeviceFamilies: [
@@ -48,7 +48,6 @@ let package = Package(
             name: "AppModule",
             path: ".",
             resources: [
-                .process("AVOHorsePose.mlpackage"),
                 .process("Resources")
             ],
             swiftSettings: [

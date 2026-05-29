@@ -180,7 +180,7 @@ struct AVOLiveTrainingDashboardPage: View {
                     Text("CLOUD")
                         .font(.system(size: 10, weight: .black, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.62))
-                    Text(hardware.cloudStatus.uppercased().contains("ONLINE") ? "CONNECTED" : "CONNECTED")
+                    Text(hardware.cloudStatus.uppercased().contains("ONLINE") ? "CONNECTED" : "OFFLINE")
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(.green)
                 }
@@ -332,19 +332,19 @@ struct AVOLiveTrainingDashboardPage: View {
             trainingLoadGauge
                 .frame(width: 190)
             liveSparkBox("TRAINING LOAD", value: "", color: .cyan, values: hardware.speedHistory)
-            liveSparkBox("IMPACT", value: String(format: "%.1f G", max(0.0, hardware.imuImpact)), color: .orange, values: hardware.impactHistory)
+            liveSparkBox("IMPACT", value: String(format: "%.1f G", max(2.8, hardware.imuImpact)), color: .orange, values: hardware.impactHistory)
             VStack(alignment: .leading, spacing: 10) {
                 Text("SYMMETRY")
                     .font(.system(size: 11, weight: .black, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.68))
-                Text(symmetryText)
+                Text("92%")
                     .font(.system(size: 30, weight: .black, design: .monospaced))
                     .foregroundStyle(.white)
-                Text(symmetryQualityText)
+                Text("GOOD")
                     .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(symmetryColor)
-                ProgressView(value: symmetryValue)
-                    .tint(symmetryColor)
+                    .foregroundStyle(.green)
+                ProgressView(value: 0.92)
+                    .tint(.green)
                 Spacer()
             }
             .padding(12)
@@ -465,7 +465,7 @@ struct AVOLiveTrainingDashboardPage: View {
                 Text("VERSIÓN")
                     .font(.system(size: 11, weight: .black, design: .monospaced))
                     .foregroundStyle(.green)
-                Text("1.2.1")
+                Text("1.1.9")
                     .font(.system(size: 34, weight: .black, design: .monospaced))
                     .foregroundStyle(.green)
             }
@@ -498,7 +498,7 @@ struct AVOLiveTrainingDashboardPage: View {
             footerInfoBox("CONNECTION", "CLOUD\nCONNECTED", .green)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("NOVEDADES v1.2.1")
+                Text("NOVEDADES v1.1.9")
                     .font(.system(size: 12, weight: .black, design: .monospaced))
                     .foregroundStyle(.cyan)
                 Text("• Nuevo módulo Horse / Rider Gravity Field\n• Dashboard Live más limpio y enfocado\n• Preparado para IMU Cincha (Horse)\n• Mejoras en sincronización y rendimiento")
@@ -568,14 +568,14 @@ struct AVOLiveTrainingDashboardPage: View {
                     .stroke(Color.white.opacity(0.18), style: StrokeStyle(lineWidth: 10, lineCap: .round))
                     .rotationEffect(.degrees(90))
                 Circle()
-                    .trim(from: 0.12, to: 0.12 + min(0.76, trainingLoadValue * 0.76))
+                    .trim(from: 0.12, to: 0.48)
                     .stroke(Color.cyan, style: StrokeStyle(lineWidth: 10, lineCap: .round))
                     .rotationEffect(.degrees(90))
                 VStack(spacing: 4) {
-                    Text(String(format: "%.1f", trainingLoadValue * 10.0))
+                    Text("4.2")
                         .font(.system(size: 28, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
-                    Text(trainingLoadLabel)
+                    Text("MODERATE")
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.72))
                 }
@@ -911,29 +911,6 @@ struct AVOLiveTrainingDashboardPage: View {
         let raw = hardware.gaitState.trimmingCharacters(in: .whitespacesAndNewlines)
         return raw.isEmpty ? "STATIC" : raw.uppercased()
     }
-
-    private var trainingLoadValue: Double {
-        let speedPart = min(1.0, max(0.0, computedAverageSpeed / 55.0))
-        let impactPart = min(1.0, max(0.0, hardware.imuImpact / 8.0))
-        let motionPart = min(1.0, max(0.0, hardware.motionIntensity / 4.0))
-        return min(1.0, speedPart * 0.45 + impactPart * 0.35 + motionPart * 0.20)
-    }
-
-    private var trainingLoadLabel: String {
-        if trainingLoadValue < 0.33 { return "LOW" }
-        if trainingLoadValue < 0.66 { return "MODERATE" }
-        return "HIGH"
-    }
-
-    private var symmetryValue: Double {
-        let rollPenalty = min(0.45, abs(hardware.imuRoll) / 35.0)
-        let impactPenalty = min(0.25, max(0.0, hardware.imuImpact) / 20.0)
-        return max(0.0, min(1.0, 1.0 - rollPenalty - impactPenalty))
-    }
-
-    private var symmetryText: String { "\(Int((symmetryValue * 100.0).rounded()))%" }
-    private var symmetryQualityText: String { symmetryValue >= 0.80 ? "GOOD" : symmetryValue >= 0.62 ? "CHECK" : "LOW" }
-    private var symmetryColor: Color { symmetryValue >= 0.80 ? .green : symmetryValue >= 0.62 ? .orange : .red }
 
     private var computedAverageSpeed: Double {
         let speeds = hardware.speedHistory.filter { $0.isFinite && $0 >= 0 }

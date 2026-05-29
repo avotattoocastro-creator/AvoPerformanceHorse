@@ -14,49 +14,22 @@ workflows:
     scripts:
       - name: Configurar perfiles
         script: |
-          set -e
-          xcode-project use-profiles || true
+          xcode-project use-profiles
 
-      - name: Preparar estructura y limpiar CoreML roto
+      - name: Limpiar modelo CoreML roto
         script: |
-          set -e
-          echo "PWD inicial: $(pwd)"
-          ls -la
+          cd AVO.swiftpm
 
-          if [ -f "AVO.swiftpm/Package.swift" ]; then
-            PACKAGE_DIR="AVO.swiftpm"
-            PROJECT_PATH="AVOPerformanceHorse.xcodeproj"
-            BUILD_ROOT="build"
-          elif [ -f "Package.swift" ]; then
-            PACKAGE_DIR="."
-            PROJECT_PATH="../AVOPerformanceHorse.xcodeproj"
-            BUILD_ROOT="../build"
-          else
-            echo "ERROR: no encuentro Package.swift ni AVO.swiftpm/Package.swift"
-            find . -maxdepth 3 -type f -name "Package.swift" -print
-            exit 1
+          perl -0pi -e 's/\s*\.process\("AVOHorsePose\.mlpackage"\),//g' Package.swift
+
+          if [ -d "AVOHorsePose.mlpackage" ]; then
+            mkdir -p ../DisabledModels
+            mv AVOHorsePose.mlpackage ../DisabledModels/AVOHorsePose.mlpackage
           fi
 
-          echo "PACKAGE_DIR=$PACKAGE_DIR" | tee /tmp/avo_env
-          echo "PROJECT_PATH=$PROJECT_PATH" | tee -a /tmp/avo_env
-          echo "BUILD_ROOT=$BUILD_ROOT" | tee -a /tmp/avo_env
-
-          perl -0pi -e 's/\s*\.process\("AVOHorsePose\.mlpackage"\),//g' "$PACKAGE_DIR/Package.swift"
-
-          if [ -d "$PACKAGE_DIR/AVOHorsePose.mlpackage" ]; then
-            mkdir -p "$BUILD_ROOT/DisabledModels"
-            mv "$PACKAGE_DIR/AVOHorsePose.mlpackage" "$BUILD_ROOT/DisabledModels/AVOHorsePose.mlpackage"
-          fi
-
-          echo "Contenido raíz después de preparar:"
-          ls -la
-          echo "Contenido paquete:"
-          ls -la "$PACKAGE_DIR"
-
-      - name: Build IPA
+      - name: Build Swift Playgrounds IPA
         script: |
-          set -e
-          source /tmp/avo_env
+          cd AVO.swiftpm
 
           PROFILE_UUID=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" -print0 | while IFS= read -r -d '' file; do
             security cms -D -i "$file" > /tmp/profile.plist 2>/dev/null || true
@@ -69,21 +42,25 @@ workflows:
           done)
 
           echo "PROFILE_UUID=$PROFILE_UUID"
-          mkdir -p "$BUILD_ROOT/ios/archive"
-          mkdir -p "$BUILD_ROOT/ios/ipa"
 
-          if [ -d "$PROJECT_PATH" ]; then
-            echo "Compilando con Xcode project: $PROJECT_PATH"
-            xcodebuild -project "$PROJECT_PATH" -list
-            xcodebuild archive               -project "$PROJECT_PATH"               -scheme "AVOPerformanceHorse"               -configuration Release               -sdk iphoneos               -destination "generic/platform=iOS"               -archivePath "$BUILD_ROOT/ios/archive/AVOPerformanceHorse.xcarchive"               DEVELOPMENT_TEAM=4J2D6P5BJX               PRODUCT_BUNDLE_IDENTIFIER=com.avoperformance.horse               CODE_SIGN_STYLE=Manual               CODE_SIGN_IDENTITY="Apple Distribution"               PROVISIONING_PROFILE="$PROFILE_UUID"               CODE_SIGN_ENTITLEMENTS=""               COREML_CODEGEN_LANGUAGE=Swift               COMPILER_INDEX_STORE_ENABLE=NO
-          else
-            echo "Compilando con SwiftPM/iOSApplication desde $PACKAGE_DIR"
-            cd "$PACKAGE_DIR"
-            xcodebuild -list
-            xcodebuild archive               -scheme "AVO Performance Horse"               -configuration Release               -sdk iphoneos               -destination "generic/platform=iOS"               -archivePath "$BUILD_ROOT/ios/archive/AVOPerformanceHorse.xcarchive"               DEVELOPMENT_TEAM=4J2D6P5BJX               PRODUCT_BUNDLE_IDENTIFIER=com.avoperformance.horse               CODE_SIGN_STYLE=Manual               CODE_SIGN_IDENTITY="Apple Distribution"               PROVISIONING_PROFILE="$PROFILE_UUID"               CODE_SIGN_ENTITLEMENTS=""               COREML_CODEGEN_LANGUAGE=Swift               COMPILER_INDEX_STORE_ENABLE=NO
-          fi
+          mkdir -p ../build/ios/archive
+          mkdir -p ../build/ios/ipa
 
-          cat > /tmp/ExportOptions.plist <<EOF
+          xcodebuild archive \
+            -scheme "AVO Performance Horse" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "../build/ios/archive/AVOPerformanceHorse.xcarchive" \
+            DEVELOPMENT_TEAM=4J2D6P5BJX \
+            PRODUCT_BUNDLE_IDENTIFIER=com.avoperformance.horse \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE="$PROFILE_UUID" \
+            COREML_CODEGEN_LANGUAGE=Swift \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+          cat > ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -105,11 +82,14 @@ workflows:
           </plist>
           EOF
 
-          xcodebuild -exportArchive             -archivePath "$BUILD_ROOT/ios/archive/AVOPerformanceHorse.xcarchive"             -exportPath "$BUILD_ROOT/ios/ipa"             -exportOptionsPlist /tmp/ExportOptions.plist
+          xcodebuild -exportArchive \
+            -archivePath "../build/ios/archive/AVOPerformanceHorse.xcarchive" \
+            -exportPath "../build/ios/ipa" \
+            -exportOptionsPlist ExportOptions.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - build/DisabledModels/AVOHorsePose.mlpackage
+      - DisabledModels/AVOHorsePose.mlpackage
 
     publishing:
       app_store_connect:

@@ -227,15 +227,8 @@ final class AVOHardwareReceiver: NSObject, ObservableObject, CBCentralManagerDel
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 await MainActor.run {
                     guard let self = self else { return }
-                    let age = Date().timeIntervalSince(self.lastPacketDate)
-                    if age > 20.0 {
-                        self.vestConnectionState = "VEST OFFLINE"
-                        self.vestConnectionAlert = "Chaleco desconectado · sin heartbeat >20s"
-                        self.vestIsConnected = false
-                    } else if age > 6.0 {
-                        self.vestConnectionState = "VEST FROZEN"
-                        self.vestConnectionAlert = "Cloud conectado · chaleco FROZEN"
-                        self.vestIsConnected = false
+                    if self.vestIsConnected && Date().timeIntervalSince(self.lastPacketDate) > 4.0 {
+                        self.markVestDisconnected(reason: "sin datos 4s")
                     }
                 }
             }
@@ -337,73 +330,6 @@ final class AVOHardwareReceiver: NSObject, ObservableObject, CBCentralManagerDel
         sendVestPayload(payload, readyText: "GEOFENCE QUEUED", sentText: "GEOFENCE SENT BLE")
     }
 
-
-    func saveTrainingZoneToServer(_ zone: TrainingZone, horseName: String) {
-        let polygonPayload: [[String: Double]] = zone.polygon.map { point in
-            ["lat": point.latitude, "lon": point.longitude]
-        }
-
-        let payload: [String: Any] = [
-            "id": "GF_001",
-            "name": zone.name.isEmpty ? "Zona entrenamiento" : zone.name,
-            "horseId": horseName.isEmpty ? "HORSE_001" : horseName,
-            "lat": zone.latitude,
-            "lon": zone.longitude,
-            "radiusM": zone.radiusMeters,
-            "exitMarginM": 15,
-            "exitConfirmSeconds": 15,
-            "polygon": polygonPayload,
-            "type": zone.isFreeDrawZone ? "FREE_DRAW_POLYGON" : "CIRCLE",
-            "source": "AVO_iOS_APP"
-        ]
-
-        guard JSONSerialization.isValidJSONObject(payload),
-              let body = try? JSONSerialization.data(withJSONObject: payload, options: []),
-              let url = raspberryAPIURL(path: "/api/geofence/save") ?? URL(string: "https://live.avoperformance.org/api/geofence/save") else {
-            geofenceStatus = "SERVER GEOFENCE JSON ERROR"
-            emitTrainingEvent(type: "geofence.server.error", title: "Geocerca no guardada", body: "Error preparando JSON del servidor")
-            return
-        }
-
-        geofenceStatus = "GEOFENCE SERVER SENDING"
-
-        Task { [weak self] in
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.timeoutInterval = 8
-            request.cachePolicy = .reloadIgnoringLocalCacheData
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = body
-
-            do {
-                let (data, response) = try await URLSession.shared.data(for: request)
-                let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-                let text = String(data: data, encoding: .utf8) ?? ""
-                let ok = (200...299).contains(code) && text.contains("\"ok\":true")
-                await MainActor.run {
-                    guard let self = self else { return }
-                    self.cloudLastHTTPCode = code
-                    self.cloudLastPayload = String(text.prefix(240))
-                    if ok {
-                        self.geofenceStatus = zone.isFreeDrawZone ? "GEOFENCE SAVED SERVER POLYGON" : "GEOFENCE SAVED SERVER CIRCLE"
-                        self.emitTrainingEvent(type: "geofence.server.saved", title: "Geocerca guardada", body: "Servidor OK · puntos: \(polygonPayload.count)")
-                    } else {
-                        self.geofenceStatus = "SERVER SAVE FAILED \(code)"
-                        self.cloudLastError = String(text.prefix(160))
-                        self.emitTrainingEvent(type: "geofence.server.error", title: "Geocerca no guardada", body: "HTTP \(code)")
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    guard let self = self else { return }
-                    self.geofenceStatus = "SERVER SAVE ERROR"
-                    self.cloudLastError = error.localizedDescription
-                    self.emitTrainingEvent(type: "geofence.server.error", title: "Geocerca no guardada", body: error.localizedDescription)
-                }
-            }
-        }
-    }
-
     private func sendVestPayload(_ payload: [String: Any], readyText: String, sentText: String) {
         guard JSONSerialization.isValidJSONObject(payload),
               let data = try? JSONSerialization.data(withJSONObject: payload, options: []),
@@ -482,24 +408,6 @@ final class AVOHardwareReceiver: NSObject, ObservableObject, CBCentralManagerDel
         cloudLastHTTPCode = httpCode
         cloudLastPayload = String(rawText.prefix(240))
         cloudLastError = "--"
-
-        // Do not resurrect a disconnected vest from a cached /api/telemetry response.
-        // The authoritative connection state comes from /api/vests/{id}/status and lastPacketAge.
-        let state = vestConnectionState.uppercased()
-        let cachedTelemetry = lastVestSeenSeconds.isFinite && lastVestSeenSeconds > 6.0
-        if cachedTelemetry || state.contains("FROZEN") || state.contains("OFFLINE") || state.contains("DISCONNECTED") {
-            cloudStatus = lastVestSeenSeconds > 20.0 ? "CLOUD ONLINE · VEST OFFLINE" : "CLOUD ONLINE · VEST FROZEN"
-            if lastVestSeenSeconds > 20.0 {
-                vestConnectionState = "VEST OFFLINE"
-                vestConnectionAlert = "Chaleco desconectado · sin heartbeat >20s"
-            } else {
-                vestConnectionState = "VEST FROZEN"
-                vestConnectionAlert = "Cloud conectado · chaleco FROZEN"
-            }
-            vestIsConnected = false
-            return
-        }
-
         cloudStatus = "CLOUD ONLINE"
         markVestConnected(source: "CLOUD")
         parsePacket(rawText)
@@ -591,38 +499,44 @@ final class AVOHardwareReceiver: NSObject, ObservableObject, CBCentralManagerDel
         guard cloudEnabled else { return }
 
         do {
-            if Date().timeIntervalSince(lastRegistryFetchDate) > 5.0, let registryURL = raspberryAPIURL(path: "/api/vests") {
-                if let registry = try? await fetchRaspberryJSON(url: registryURL) {
-                    await applyVestRegistry(registry.json, rawText: registry.text, httpCode: registry.code)
-                    lastRegistryFetchDate = Date()
-                }
-            }
-
-            if let statusURL = raspberryAPIURL(path: "/api/vests/\(selectedVestID)/status"),
-               let status = try? await fetchRaspberryJSON(url: statusURL) {
-                await applyVestStatus(status.json, rawText: status.text, httpCode: status.code)
-            }
-
-            if let telemetryURL = raspberryAPIURL(path: "/api/telemetry"),
-               let telemetry = try? await fetchRaspberryJSON(url: telemetryURL) {
-                await applyCloudPacket(telemetry.json, rawText: telemetry.text, httpCode: telemetry.code)
-                return
-            }
-
-            guard let fallbackURL = URL(string: cloudAPI) else {
+            // FIX 1.2.1/34: la app debe tomar como fuente principal el endpoint configurado.
+            // En campo el servidor real responde en /api/latest con HTTP 200 y JSON válido.
+            // Antes se consultaban primero /api/vests/VEST_001/status y /api/telemetry,
+            // lo que podía marcar OFFLINE/FROZEN aunque /api/latest estuviera entregando datos LIVE.
+            guard let primaryURL = URL(string: cloudAPI) else {
                 await MainActor.run {
                     self.cloudStatus = "CLOUD BAD URL"
                     self.cloudLastError = "BAD URL"
                 }
                 return
             }
-            let latest = try await fetchRaspberryJSON(url: fallbackURL)
+
+            let latest = try await fetchRaspberryJSON(url: primaryURL)
             await applyCloudPacket(latest.json, rawText: latest.text, httpCode: latest.code)
+
+            // Registro de chalecos solo como información secundaria. Nunca debe tumbar el CLOUD ONLINE
+            // si /api/latest acaba de responder bien.
+            if Date().timeIntervalSince(lastRegistryFetchDate) > 8.0,
+               let registryURL = raspberryAPIURL(path: "/api/vests"),
+               let registry = try? await fetchRaspberryJSON(url: registryURL) {
+                await applyVestRegistry(registry.json, rawText: registry.text, httpCode: registry.code)
+                lastRegistryFetchDate = Date()
+            }
         } catch {
             await MainActor.run {
-                self.cloudStatus = "CLOUD OFFLINE"
                 self.cloudLastError = error.localizedDescription
-                self.markVestDisconnected(reason: "cloud offline")
+                self.cloudLastHTTPCode = 0
+
+                // Anti-parpadeo: no declarar OFFLINE por un fallo aislado de red/Cloudflare.
+                // Solo cae a offline si pasan más de 10 s sin ningún paquete válido.
+                let age = Date().timeIntervalSince(self.lastPacketDate)
+                if age > 10.0 {
+                    self.cloudStatus = "CLOUD OFFLINE"
+                    self.markVestDisconnected(reason: "cloud sin datos >10s")
+                } else {
+                    self.cloudStatus = "CLOUD ONLINE"
+                    self.vestConnectionAlert = "Cloud con latencia · manteniendo último paquete"
+                }
             }
         }
     }

@@ -56,10 +56,10 @@
 	<string>La app puede guardar vídeos e informes exportados.</string>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>remote-notification</string>
 		<string>bluetooth-central</string>
 		<string>fetch</string>
 		<string>location</string>
-		<string>remote-notification</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>La app necesita la ubicación para mostrar el caballo en el mapa, controlar geocercas de entrenamiento y registrar sesiones GPS/RTK en tiempo real.</string>
