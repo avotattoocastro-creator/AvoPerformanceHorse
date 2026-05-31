@@ -63,9 +63,9 @@ workflows:
           fi
 
           # AVO BUILD46 HARD LOCK
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.3.1" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 46" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
-          perl -0pi -e 's/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = 46;/g; s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = 1.3.1;/g' "$AVO_PROJECT_DIR/../AVOPerformanceHorse.xcodeproj/project.pbxproj" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.3.3" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 48" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
+          perl -0pi -e 's/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = 48;/g; s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = 1.3.3;/g' "$AVO_PROJECT_DIR/../AVOPerformanceHorse.xcodeproj/project.pbxproj" || true
 
           echo "AVO VERSION CHECK BEFORE ARCHIVE:"
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
