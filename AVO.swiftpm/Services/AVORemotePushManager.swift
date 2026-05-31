@@ -164,7 +164,7 @@ final class AVORemotePushManager: NSObject, ObservableObject {
             "environment": "production",
             "app": "AVO Performance Horse",
             "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.6",
-            "build": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "50",
+            "build": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "51",
             "reason": reason
         ]
 
