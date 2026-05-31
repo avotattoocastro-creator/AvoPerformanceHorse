@@ -12,24 +12,39 @@ workflows:
         bundle_identifier: com.avoperformance.horse
 
     scripts:
+      - name: Localizar proyecto SwiftPM
+        script: |
+          echo "CM_BUILD_DIR=$CM_BUILD_DIR"
+          pwd
+          ls -la
+          if [ -d "AVO.swiftpm" ]; then
+            echo "AVO_PROJECT_DIR=$PWD/AVO.swiftpm" >> $CM_ENV
+          else
+            FOUND=$(find "$CM_BUILD_DIR" -maxdepth 4 -type d -name "AVO.swiftpm" | head -1)
+            if [ -z "$FOUND" ]; then
+              echo "ERROR: No encuentro AVO.swiftpm dentro de $CM_BUILD_DIR"
+              find "$CM_BUILD_DIR" -maxdepth 3 -type d | sort
+              exit 1
+            fi
+            echo "AVO_PROJECT_DIR=$FOUND" >> $CM_ENV
+          fi
+
       - name: Configurar perfiles
         script: |
           xcode-project use-profiles
 
       - name: Limpiar modelo CoreML roto
         script: |
-          cd AVO.swiftpm
-
+          cd "$AVO_PROJECT_DIR"
           perl -0pi -e 's/\s*\.process\("AVOHorsePose\.mlpackage"\),//g' Package.swift
-
           if [ -d "AVOHorsePose.mlpackage" ]; then
-            mkdir -p ../DisabledModels
-            mv AVOHorsePose.mlpackage ../DisabledModels/AVOHorsePose.mlpackage
+            mkdir -p "$CM_BUILD_DIR/DisabledModels"
+            mv AVOHorsePose.mlpackage "$CM_BUILD_DIR/DisabledModels/AVOHorsePose.mlpackage"
           fi
 
       - name: Build Swift Playgrounds IPA
         script: |
-          cd AVO.swiftpm
+          cd "$AVO_PROJECT_DIR"
 
           PROFILE_UUID=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" -print0 | while IFS= read -r -d '' file; do
             security cms -D -i "$file" > /tmp/profile.plist 2>/dev/null || true
@@ -42,21 +57,39 @@ workflows:
           done)
 
           echo "PROFILE_UUID=$PROFILE_UUID"
+          if [ -z "$PROFILE_UUID" ]; then
+            echo "ERROR: No encuentro provisioning profile para com.avoperformance.horse"
+            exit 1
+          fi
 
-          mkdir -p ../build/ios/archive
-          mkdir -p ../build/ios/ipa
+          # AVO BUILD50 APPSTORE VERSION LOCK
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.3.5" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 50" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
+          perl -0pi -e 's/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = 50;/g; s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = 1.3.5;/g' "$AVO_PROJECT_DIR/../AVOPerformanceHorse.xcodeproj/project.pbxproj" || true
+
+          echo "AVO VERSION CHECK BEFORE ARCHIVE:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
+
+          mkdir -p "$CM_BUILD_DIR/build/ios/archive"
+          mkdir -p "$CM_BUILD_DIR/build/ios/ipa"
+
+          echo "AVAILABLE SCHEMES:"
+          xcodebuild -list || true
 
           xcodebuild archive \
             -scheme "AVO Performance Horse" \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -archivePath "../build/ios/archive/AVOPerformanceHorse.xcarchive" \
+            -archivePath "$CM_BUILD_DIR/build/ios/archive/AVOPerformanceHorse.xcarchive" \
             DEVELOPMENT_TEAM=4J2D6P5BJX \
             PRODUCT_BUNDLE_IDENTIFIER=com.avoperformance.horse \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE="$PROFILE_UUID" \
+            MARKETING_VERSION=1.3.5 \
+            CURRENT_PROJECT_VERSION=50 \
             COREML_CODEGEN_LANGUAGE=Swift \
             COMPILER_INDEX_STORE_ENABLE=NO
 
@@ -83,8 +116,8 @@ workflows:
           EOF
 
           xcodebuild -exportArchive \
-            -archivePath "../build/ios/archive/AVOPerformanceHorse.xcarchive" \
-            -exportPath "../build/ios/ipa" \
+            -archivePath "$CM_BUILD_DIR/build/ios/archive/AVOPerformanceHorse.xcarchive" \
+            -exportPath "$CM_BUILD_DIR/build/ios/ipa" \
             -exportOptionsPlist ExportOptions.plist
 
     artifacts:
