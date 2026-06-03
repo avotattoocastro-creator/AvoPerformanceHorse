@@ -1,4 +1,4 @@
-AVO Performance Horse 1.4.2 BUILD57
+AVO Performance Horse 1.4.3 BUILD58
 
 Cambios principales:
 - SESSION no sincroniza al abrir. Solo carga cache local.
@@ -9,4 +9,4 @@ Cambios principales:
 - Lezama dreams queda solo como nombre visual de UI, no como carpeta tecnica.
 - Migracion automatica: copia Sessions/LEZAMA_DREAMS/* a Sessions/HORSE_001/* si existe.
 - Al abrir analisis usa session.json local si existe; si falta, descarga una sola vez /api/session_light/<sessionId> y lo guarda local.
-- Version Apple revisada: 1.4.2 / build 57.
+- Version Apple revisada: 1.4.3 / build 58.

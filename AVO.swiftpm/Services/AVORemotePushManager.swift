@@ -3,7 +3,7 @@ import UIKit
 import UserNotifications
 
 // MARK: - AVO Remote Push Manager
-// v1.4.2 build 57
+// v1.4.3 build 58
 // Push-only update. No CoreML changes.
 // Registers the real APNs token and uploads it to the public Raspberry endpoint:
 // https://live.avoperformance.org/api/push/register
@@ -34,7 +34,7 @@ final class AVORemotePushManager: NSObject, ObservableObject {
     private override init() { super.init() }
 
     func configureAndRegister() {
-        print("AVO PUSH BUILD57: configureAndRegister")
+        print("AVO PUSH BUILD58: configureAndRegister")
         UNUserNotificationCenter.current().delegate = AVOTrainingPushBridge.shared
 
         // Always re-check server status and retry stored token.
@@ -55,17 +55,17 @@ final class AVORemotePushManager: NSObject, ObservableObject {
 
                 if let error {
                     self.setStatus("PUSH PERMISSION ERROR: \(error.localizedDescription)")
-                    print("AVO PUSH BUILD57 permission error:", error.localizedDescription)
+                    print("AVO PUSH BUILD58 permission error:", error.localizedDescription)
                     return
                 }
 
                 if granted {
                     self.setStatus("PUSH PERMISSION OK - REQUESTING APNS TOKEN")
-                    print("AVO PUSH BUILD57 permission OK")
+                    print("AVO PUSH BUILD58 permission OK")
                     self.registerForRemoteNotificationsOnce(force: true)
                 } else {
                     self.setStatus("PUSH PERMISSION DENIED")
-                    print("AVO PUSH BUILD57 permission denied")
+                    print("AVO PUSH BUILD58 permission denied")
                 }
             }
         }
@@ -76,7 +76,7 @@ final class AVORemotePushManager: NSObject, ObservableObject {
         didAskRemoteRegistration = true
 
         DispatchQueue.main.async {
-            print("AVO PUSH BUILD57: UIApplication.registerForRemoteNotifications()")
+            print("AVO PUSH BUILD58: UIApplication.registerForRemoteNotifications()")
             UIApplication.shared.registerForRemoteNotifications()
         }
     }
@@ -86,7 +86,7 @@ final class AVORemotePushManager: NSObject, ObservableObject {
         apnsTokenHex = token
         UserDefaults.standard.set(token, forKey: "AVO_APNS_TOKEN_HEX")
         UserDefaults.standard.set(Date(), forKey: "AVO_APNS_TOKEN_DATE")
-        print("AVO PUSH BUILD57 APNS TOKEN:", token)
+        print("AVO PUSH BUILD58 APNS TOKEN:", token)
 
         Task { await uploadToken(token, reason: "didRegisterForRemoteNotifications") }
     }
@@ -98,7 +98,7 @@ final class AVORemotePushManager: NSObject, ObservableObject {
     private func uploadStoredTokenIfAvailableAsync() async {
         let stored = UserDefaults.standard.string(forKey: "AVO_APNS_TOKEN_HEX") ?? apnsTokenHex
         guard !stored.isEmpty else {
-            print("AVO PUSH BUILD57: no stored APNS token yet")
+            print("AVO PUSH BUILD58: no stored APNS token yet")
             return
         }
         await uploadToken(stored, reason: "stored-token-retry")
@@ -116,20 +116,20 @@ final class AVORemotePushManager: NSObject, ObservableObject {
             await MainActor.run {
                 self.lastServerStatus = "HTTP \(code): \(body.prefix(120))"
                 UserDefaults.standard.set(self.lastServerStatus, forKey: "AVO_PUSH_SERVER_STATUS")
-                print("AVO PUSH BUILD57 server status:", self.lastServerStatus)
+                print("AVO PUSH BUILD58 server status:", self.lastServerStatus)
             }
         } catch {
             await MainActor.run {
                 self.lastServerStatus = "PUSH SERVER ERROR: \(error.localizedDescription)"
                 UserDefaults.standard.set(self.lastServerStatus, forKey: "AVO_PUSH_SERVER_STATUS")
-                print("AVO PUSH BUILD57 server status error:", error.localizedDescription)
+                print("AVO PUSH BUILD58 server status error:", error.localizedDescription)
             }
         }
     }
 
     private func uploadToken(_ token: String, reason: String) async {
         if uploadInProgress {
-            print("AVO PUSH BUILD57: upload already in progress")
+            print("AVO PUSH BUILD58: upload already in progress")
             return
         }
         uploadInProgress = true
@@ -163,14 +163,14 @@ final class AVORemotePushManager: NSObject, ObservableObject {
             "systemVersion": UIDevice.current.systemVersion,
             "environment": "production",
             "app": "AVO Performance Horse",
-            "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.4.2",
+            "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.4.3",
             "build": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "57",
             "reason": reason
         ]
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
-            print("AVO PUSH BUILD57 uploading APNS token to:", registerURL.absoluteString, "reason:", reason)
+            print("AVO PUSH BUILD58 uploading APNS token to:", registerURL.absoluteString, "reason:", reason)
 
             let (data, response) = try await URLSession.shared.data(for: request)
             let code = (response as? HTTPURLResponse)?.statusCode ?? -1
@@ -180,17 +180,17 @@ final class AVORemotePushManager: NSObject, ObservableObject {
                 if (200...299).contains(code) {
                     self.lastRegisterDate = Date()
                     UserDefaults.standard.set(Date(), forKey: "AVO_PUSH_LAST_REGISTER_DATE")
-                    self.setStatus("PUSH TOKEN REGISTERED BUILD57 HTTP \(code)")
-                    print("AVO PUSH BUILD57 REGISTER OK:", text)
+                    self.setStatus("PUSH TOKEN REGISTERED BUILD58 HTTP \(code)")
+                    print("AVO PUSH BUILD58 REGISTER OK:", text)
                 } else {
-                    self.setStatus("PUSH TOKEN ERROR BUILD57 HTTP \(code): \(text.prefix(160))")
-                    print("AVO PUSH BUILD57 REGISTER HTTP ERROR \(code):", text)
+                    self.setStatus("PUSH TOKEN ERROR BUILD58 HTTP \(code): \(text.prefix(160))")
+                    print("AVO PUSH BUILD58 REGISTER HTTP ERROR \(code):", text)
                 }
             }
         } catch {
             await MainActor.run {
-                self.setStatus("PUSH TOKEN UPLOAD ERROR BUILD57: \(error.localizedDescription)")
-                print("AVO PUSH BUILD57 REGISTER ERROR:", error.localizedDescription)
+                self.setStatus("PUSH TOKEN UPLOAD ERROR BUILD58: \(error.localizedDescription)")
+                print("AVO PUSH BUILD58 REGISTER ERROR:", error.localizedDescription)
             }
         }
     }
@@ -208,7 +208,7 @@ final class AVOPushAppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        print("AVO PUSH BUILD57: didFinishLaunching")
+        print("AVO PUSH BUILD58: didFinishLaunching")
         AVOTrainingPushBridge.shared.configureNotificationSystem()
         Task { @MainActor in
             AVORemotePushManager.shared.configureAndRegister()
@@ -218,14 +218,14 @@ final class AVOPushAppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        print("AVO PUSH BUILD57: didRegisterForRemoteNotificationsWithDeviceToken")
+        print("AVO PUSH BUILD58: didRegisterForRemoteNotificationsWithDeviceToken")
         Task { @MainActor in
             AVORemotePushManager.shared.updateDeviceToken(deviceToken)
         }
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("AVO PUSH BUILD57 APNs registration failed:", error.localizedDescription)
+        print("AVO PUSH BUILD58 APNs registration failed:", error.localizedDescription)
         Task { @MainActor in
             AVORemotePushManager.shared.configureAndRegister()
         }
@@ -236,7 +236,7 @@ final class AVOPushAppDelegate: NSObject, UIApplicationDelegate {
         didReceiveRemoteNotification userInfo: [AnyHashable: Any],
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
-        print("AVO PUSH BUILD57 remote push received:", userInfo)
+        print("AVO PUSH BUILD58 remote push received:", userInfo)
         completionHandler(.newData)
     }
 }

@@ -185,7 +185,7 @@ private struct AVOVisualRealElementMock: View {
         Group {
             switch element.name.uppercased() {
             case "VERSION":
-                Text("VERSION 1.4.2")
+                Text("VERSION 1.4.3")
                     .font(.system(size: max(8, CGFloat(element.fontSize)), weight: .black, design: .monospaced))
                     .foregroundColor(.white.opacity(0.92))
                     .padding(.horizontal, 12).padding(.vertical, 7)

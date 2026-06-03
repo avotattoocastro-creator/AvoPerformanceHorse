@@ -646,7 +646,7 @@ final class AVOHardwareReceiver: NSObject, ObservableObject, CBCentralManagerDel
         guard cloudEnabled else { return }
 
         do {
-            // v1.4.2 BUILD57: /api/latest es la única verdad para el dashboard.
+            // v1.4.3 BUILD58: /api/latest es la única verdad para el dashboard.
             // No dejamos que fallos de /api/vests o /api/telemetry tiren abajo CLOUD.
             guard let primaryURL = URL(string: cloudAPI) ?? raspberryAPIURL(path: "/api/latest") else {
                 await MainActor.run {

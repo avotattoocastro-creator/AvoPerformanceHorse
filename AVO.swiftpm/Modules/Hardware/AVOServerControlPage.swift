@@ -167,7 +167,7 @@ struct AVOServerControlPage: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            Text("Server page v1.4.2 build 57 · endpoints: /api/vests · /api/vests/{id}/status · /api/telemetry")
+            Text("Server page v1.4.3 build 58 · endpoints: /api/vests · /api/vests/{id}/status · /api/telemetry")
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.62))
             Spacer()

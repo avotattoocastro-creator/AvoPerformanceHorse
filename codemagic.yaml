@@ -62,10 +62,10 @@ workflows:
             exit 1
           fi
 
-          # AVO BUILD57 APPSTORE VERSION LOCK
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.4.2" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
+          # AVO BUILD58 APPSTORE VERSION LOCK
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.4.3" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 57" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
-          perl -0pi -e 's/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = 57;/g; s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = 1.4.2;/g' "$AVO_PROJECT_DIR/../AVOPerformanceHorse.xcodeproj/project.pbxproj" || true
+          perl -0pi -e 's/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = 58;/g; s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = 1.4.3;/g' "$AVO_PROJECT_DIR/../AVOPerformanceHorse.xcodeproj/project.pbxproj" || true
 
           echo "AVO VERSION CHECK BEFORE ARCHIVE:"
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
@@ -88,8 +88,8 @@ workflows:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE="$PROFILE_UUID" \
-            MARKETING_VERSION=1.4.2 \
-            CURRENT_PROJECT_VERSION=57 \
+            MARKETING_VERSION=1.4.3 \
+            CURRENT_PROJECT_VERSION=58 \
             COREML_CODEGEN_LANGUAGE=Swift \
             COMPILER_INDEX_STORE_ENABLE=NO
 

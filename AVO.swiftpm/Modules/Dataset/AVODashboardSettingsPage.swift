@@ -45,10 +45,10 @@ final class AVODashboardSettingsStore: ObservableObject {
     init() {
         let defaults = UserDefaults.standard
 
-        // v1.4.2 BUILD57: fuerza una migración limpia a CLOUD REAL.
+        // v1.4.3 BUILD58: fuerza una migración limpia a CLOUD REAL.
         // La app ya no debe depender de IP local/UDP para campo. La fuente principal es:
         // https://live.avoperformance.org/api/latest/compact
-        let migrationKey = "AVO.dashboard.cloudOnlyMigration.1.4.2"
+        let migrationKey = "AVO.dashboard.cloudOnlyMigration.1.4.3"
         if defaults.bool(forKey: migrationKey) == false {
             defaults.set(true, forKey: "AVO.dashboard.cloudEnabled")
             defaults.set(true, forKey: "AVO.dashboard.useHTTPS")

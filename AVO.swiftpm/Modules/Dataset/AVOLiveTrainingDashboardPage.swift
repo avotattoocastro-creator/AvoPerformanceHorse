@@ -158,7 +158,7 @@ struct AVOLiveTrainingDashboardPage: View {
             refreshDashboardSessionState()
             loadDashboardGeofenceFromLatest(force: true)
             selectedSessionHorseId = canonicalSessionHorseId("HORSE_001")
-            // v1.4.2 BUILD57: do NOT auto-sync sessions on dashboard open.
+            // v1.4.3 BUILD58: do NOT auto-sync sessions on dashboard open.
             // The Raspberry was being saturated when the SESSION page/server index was hit automatically.
             loadLocalTrainingSessionsForSelectedHorse(status: "LOCAL CACHE · TAP REFRESH TO SYNC")
             refreshFrozenDataWatchdog(forceReset: true)
@@ -567,7 +567,7 @@ struct AVOLiveTrainingDashboardPage: View {
             Button {
                 selectedTab = "SESSION"
                 selectedSessionHorseId = canonicalSessionHorseId("HORSE_001")
-                // v1.4.2 BUILD57: opening SESSION must stay local-only.
+                // v1.4.3 BUILD58: opening SESSION must stay local-only.
                 loadLocalTrainingSessionsForSelectedHorse(status: "LOCAL CACHE · TAP REFRESH TO SYNC")
             } label: {
                 liveNavItem("clock", "SESSION", selectedTab == "SESSION")
@@ -1528,7 +1528,7 @@ struct AVOLiveTrainingDashboardPage: View {
         return trimmed.uppercased().replacingOccurrences(of: " ", with: "_")
     }
 
-    // v1.4.2 BUILD57: storage and Raspberry sync are keyed by the stable server horseId.
+    // v1.4.3 BUILD58: storage and Raspberry sync are keyed by the stable server horseId.
     // The display name can be "Lezama dreams", but local folders must remain HORSE_001
     // so the iPad cache matches the LilyGO/Raspberry session files.
     private func canonicalSessionHorseId(_ value: String? = nil) -> String {
@@ -1612,7 +1612,7 @@ struct AVOLiveTrainingDashboardPage: View {
                 }
 
                 let json = try JSONSerialization.jsonObject(with: data)
-                // v1.4.2 BUILD57 STABILITY FIX:
+                // v1.4.3 BUILD58 STABILITY FIX:
                 // Opening the SESSION page must never download every session detail from the Raspberry.
                 // That created a burst of hundreds of /api/session/<id> calls and could bring the server down.
                 // Here we cache ONLY the lightweight index/meta. A full session is downloaded one at a time
@@ -1648,7 +1648,7 @@ struct AVOLiveTrainingDashboardPage: View {
 
     private func appLocalRootURL() -> URL {
         if let root = stableStore.rootFolderURL {
-            // v1.4.2 BUILD57: always use the configured iPad folder selected in SETTINGS > APP FOLDER.
+            // v1.4.3 BUILD58: always use the configured iPad folder selected in SETTINGS > APP FOLDER.
             // Start security scoped access again before session sync reads/writes so Files.app shows:
             // <configured folder>/Sessions/<HORSE_ID>/<SESSION_ID>/...
             _ = root.startAccessingSecurityScopedResource()
@@ -1859,7 +1859,7 @@ struct AVOLiveTrainingDashboardPage: View {
     private func downloadRemoteSessionDetailData(sessionId: String) async -> Data? {
         guard !sessionId.isEmpty,
               let safe = sessionId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else { return nil }
-        // v1.4.2 BUILD57: Raspberry exposes the detail endpoint as /api/session/<sessionId>.
+        // v1.4.3 BUILD58: Raspberry exposes the detail endpoint as /api/session/<sessionId>.
         // Details are downloaded one-at-a-time only when the user opens a session.
         // Do not bulk-download on page open.
         let urlStrings = [
