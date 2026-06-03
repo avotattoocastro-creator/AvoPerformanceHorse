@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 58;
 	objects = {
 		FA0143C89DBEEC369519E372 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVO.swiftpm/Core/Models.swift"; sourceTree = "<group>";};
 		930BA883B6340260CBB5A10E = {isa = PBXBuildFile; fileRef = FA0143C89DBEEC369519E372;};
