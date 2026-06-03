@@ -396,7 +396,8 @@ enum AVOTrainingReplayParser {
             return ""
         }
         func value(_ row: [String], _ keys: String...) -> String { value(row, keys) }
-        func double(_ row: [String], _ keys: String...) -> Double { parseDouble(value(row, keys)) }
+        func double(_ row: [String], _ keys: [String]) -> Double { parseDouble(value(row, keys)) }
+        func double(_ row: [String], _ keys: String...) -> Double { double(row, keys) }
         func int(_ row: [String], _ keys: String...) -> Int { Int(double(row, keys)) }
 
         var out: [AVOReplayGPSPoint] = []
