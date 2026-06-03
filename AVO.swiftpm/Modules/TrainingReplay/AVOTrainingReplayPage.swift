@@ -88,8 +88,8 @@ extension Array where Element == AVOReplayGPSPoint {
             return MKMapRect.world
         }
 
-        let width = max(500.0, maxX - minX)
-        let height = max(500.0, maxY - minY)
+        let width = Swift.max(500.0, maxX - minX)
+        let height = Swift.max(500.0, maxY - minY)
         let padX = width * 0.20
         let padY = height * 0.20
 
@@ -164,7 +164,7 @@ final class AVOTrainingReplayDetailViewModel: ObservableObject {
     }
 
     var minTime: Double { min(gps.first?.t ?? 0, imu.first?.t ?? 0) }
-    var maxTime: Double { max(gps.last?.t ?? 0, imu.last?.t ?? 0) }
+    var maxTime: Double { Swift.max(gps.last?.t ?? 0, imu.last?.t ?? 0) }
     var duration: Double { max(0, maxTime - minTime) }
 
     var selectedGPS: AVOReplayGPSPoint? {
