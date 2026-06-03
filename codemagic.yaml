@@ -64,7 +64,7 @@ workflows:
 
           # AVO BUILD58 APPSTORE VERSION LOCK
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.4.3" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 57" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 58" "$AVO_PROJECT_DIR/../AVOPerformanceHorse/Info.plist" || true
           perl -0pi -e 's/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = 58;/g; s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = 1.4.3;/g' "$AVO_PROJECT_DIR/../AVOPerformanceHorse.xcodeproj/project.pbxproj" || true
 
           echo "AVO VERSION CHECK BEFORE ARCHIVE:"
